@@ -162,11 +162,15 @@ vercel
 ## Screenshots
 
 > *(Add screenshots here before final submission)*
-> - Home page (logged out + logged in)
-> - Register / Login forms
-> - Log Trip form (step 1 and 2)
-> - My Trips grid with filters
-> - Trip detail with map and weather
+> - <img width="1901" height="894" alt="image" src="https://github.com/user-attachments/assets/0c321deb-165f-4cab-973a-510ed2f46ebd" />
+> - <img width="1902" height="894" alt="image" src="https://github.com/user-attachments/assets/6d690cdf-8c0e-49ad-9603-63c203ec097b" />
+> - <img width="1910" height="933" alt="image" src="https://github.com/user-attachments/assets/51804508-f842-41e9-9d0e-580fcef02aca" />
+> - <img width="1911" height="935" alt="image" src="https://github.com/user-attachments/assets/1be3ceee-84a1-4ede-92f3-c16beec1d576" />
+> - <img width="1907" height="933" alt="image" src="https://github.com/user-attachments/assets/b60a17a0-2849-4d85-abea-d869f605b5b4" />
+> - <img width="1912" height="930" alt="image" src="https://github.com/user-attachments/assets/ca3d4d8b-4e57-4ecd-ad4b-288576e5d073" />
+> - <img width="1907" height="936" alt="image" src="https://github.com/user-attachments/assets/2f55c85b-b8ba-45bd-bedc-161472c0644c" />
+> - <img width="1916" height="932" alt="image" src="https://github.com/user-attachments/assets/efe6cbf2-b257-4b20-b26a-b1d6541c6d24" />
+
 
 ---
 

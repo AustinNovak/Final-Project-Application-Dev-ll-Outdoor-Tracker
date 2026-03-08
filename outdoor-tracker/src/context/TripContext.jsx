@@ -1,13 +1,16 @@
 // TripContext.jsx
-// Global state for all trips. Uses localStorage for persistence across sessions.
+// Global trip state with ownership — trips are tagged with the userId of whoever
+// logged them. myTrips = only the current user's trips. publicTrips = all trips
+// marked isPublic (visible to anyone on the Explore page).
 import { createContext, useContext, useState, useMemo, useEffect } from "react";
+import { useAuth } from "./AuthContext";
 
 const TripContext = createContext();
-
 const STORAGE_KEY = "outdoor_tracker_trips";
 
 export function TripProvider({ children }) {
-  // Load persisted trips from localStorage on mount
+  const { user } = useAuth();
+
   const [trips, setTrips] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -17,38 +20,46 @@ export function TripProvider({ children }) {
     }
   });
 
-  // Persist trips to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
   }, [trips]);
 
-  /** Add a new trip (full trip object with all fields) */
+  /** Only trips belonging to the currently logged-in user */
+  const myTrips = useMemo(
+    () => trips.filter((t) => t.userId === user?.id),
+    [trips, user]
+  );
+
+  /** All trips marked public — visible on Explore page regardless of owner */
+  const publicTrips = useMemo(
+    () => trips.filter((t) => t.isPublic === true),
+    [trips]
+  );
+
+  /** Add trip — automatically stamps it with the current user's id */
   function addTrip(trip) {
-    const newTrip = { ...trip, id: Date.now() };
+    const newTrip = { ...trip, id: Date.now(), userId: user?.id };
     setTrips((prev) => [newTrip, ...prev]);
     return newTrip;
   }
 
-  /** Update an existing trip by id */
   function updateTrip(id, updates) {
     setTrips((prev) =>
       prev.map((t) => (t.id === Number(id) ? { ...t, ...updates } : t))
     );
   }
 
-  /** Delete a trip by id */
   function deleteTrip(id) {
     setTrips((prev) => prev.filter((t) => t.id !== Number(id)));
   }
 
-  /** Get a single trip by id */
   function getTripById(id) {
     return trips.find((t) => t.id === Number(id));
   }
 
   const value = useMemo(
-    () => ({ trips, addTrip, updateTrip, deleteTrip, getTripById }),
-    [trips]
+    () => ({ trips, myTrips, publicTrips, addTrip, updateTrip, deleteTrip, getTripById }),
+    [trips, myTrips, publicTrips]
   );
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;

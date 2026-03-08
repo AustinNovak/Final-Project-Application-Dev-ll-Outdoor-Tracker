@@ -1,87 +1,90 @@
-// TripContext.test.jsx — Tests for global state (Context API)
+// TripContext.test.jsx — Tests for global trip state
 import { render, screen, act } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { AuthProvider } from "../context/AuthContext";
 import { TripProvider, useTrip } from "../context/TripContext";
 
-// Mock localStorage so it works reliably in the test environment
-const localStorageMock = (() => {
+// Storage mocks
+const makeStoreMock = () => {
   let store = {};
   return {
-    getItem: (key) => store[key] ?? null,
-    setItem: (key, value) => { store[key] = String(value); },
-    removeItem: (key) => { delete store[key]; },
-    clear: () => { store = {}; },
+    getItem:    (k)    => store[k] ?? null,
+    setItem:    (k, v) => { store[k] = String(v); },
+    removeItem: (k)    => { delete store[k]; },
+    clear:      ()     => { store = {}; },
   };
-})();
-Object.defineProperty(globalThis, "localStorage", { value: localStorageMock });
+};
+const lsMock = makeStoreMock();
+const ssMock = makeStoreMock();
+Object.defineProperty(globalThis, "localStorage",  { value: lsMock });
+Object.defineProperty(globalThis, "sessionStorage", { value: ssMock });
 
-// A simple consumer component for testing context
 function TestConsumer() {
-  const { trips, addTrip, deleteTrip } = useTrip();
+  const { myTrips, addTrip, deleteTrip } = useTrip();
   return (
     <div>
-      <p data-testid="count">{trips.length}</p>
+      <p data-testid="count">{myTrips.length}</p>
       <button onClick={() =>
         addTrip({ location: "Test Lake", date: "2025-01-01", tripType: "fishing" })
-      }>
-        Add
-      </button>
-      <button onClick={() => trips[0] && deleteTrip(trips[0].id)}>
+      }>Add</button>
+      <button onClick={() => myTrips[0] && deleteTrip(myTrips[0].id)}>
         Delete First
       </button>
-      {trips.map((t) => (
+      {myTrips.map((t) => (
         <p key={t.id} data-testid="trip-location">{t.location}</p>
       ))}
     </div>
   );
 }
 
-function renderWithProvider() {
+function renderWithProviders() {
   return render(
-    <TripProvider>
-      <TestConsumer />
-    </TripProvider>
+    <AuthProvider>
+      <TripProvider>
+        <MemoryRouter>
+          <TestConsumer />
+        </MemoryRouter>
+      </TripProvider>
+    </AuthProvider>
   );
 }
 
 describe("TripContext", () => {
-  // Clear mock storage before each test so they don't bleed into each other
-  beforeEach(() => localStorageMock.clear());
+  beforeEach(() => { lsMock.clear(); ssMock.clear(); });
 
   test("starts with zero trips", () => {
-    renderWithProvider();
+    renderWithProviders();
     expect(screen.getByTestId("count").textContent).toBe("0");
   });
 
   test("addTrip increases trip count", () => {
-    renderWithProvider();
+    renderWithProviders();
     act(() => screen.getByText("Add").click());
     expect(screen.getByTestId("count").textContent).toBe("1");
   });
 
   test("addTrip saves the correct location", () => {
-    renderWithProvider();
+    renderWithProviders();
     act(() => screen.getByText("Add").click());
     expect(screen.getByTestId("trip-location").textContent).toBe("Test Lake");
   });
 
   test("addTrip assigns a numeric id", () => {
-    let capturedTrips = [];
+    let captured = [];
     function Capture() {
-      const { trips, addTrip } = useTrip();
-      capturedTrips = trips;
-      return (
-        <button onClick={() => addTrip({ location: "X", date: "2025-01-01", tripType: "hiking" })}>
-          Add
-        </button>
-      );
+      const { myTrips, addTrip } = useTrip();
+      captured = myTrips;
+      return <button onClick={() => addTrip({ location: "X", date: "2025-01-01", tripType: "hiking" })}>Add</button>;
     }
-    const { getByText } = render(<TripProvider><Capture /></TripProvider>);
+    const { getByText } = render(
+      <AuthProvider><TripProvider><MemoryRouter><Capture /></MemoryRouter></TripProvider></AuthProvider>
+    );
     act(() => getByText("Add").click());
-    expect(typeof capturedTrips[0].id).toBe("number");
+    expect(typeof captured[0].id).toBe("number");
   });
 
   test("deleteTrip removes a trip", () => {
-    renderWithProvider();
+    renderWithProviders();
     act(() => screen.getByText("Add").click());
     expect(screen.getByTestId("count").textContent).toBe("1");
     act(() => screen.getByText("Delete First").click());
@@ -89,7 +92,7 @@ describe("TripContext", () => {
   });
 
   test("multiple trips can be added", () => {
-    renderWithProvider();
+    renderWithProviders();
     act(() => screen.getByText("Add").click());
     act(() => screen.getByText("Add").click());
     act(() => screen.getByText("Add").click());
@@ -98,20 +101,15 @@ describe("TripContext", () => {
 
   test("useTrip throws when used outside TripProvider", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    function BareConsumer() {
-      useTrip();
-      return null;
-    }
-    expect(() => render(<BareConsumer />)).toThrow(
-      "useTrip must be used inside TripProvider"
-    );
+    function Bare() { useTrip(); return null; }
+    expect(() => render(<Bare />)).toThrow("useTrip must be used inside TripProvider");
     spy.mockRestore();
   });
 
   test("trips persist to localStorage", () => {
-    renderWithProvider();
+    renderWithProviders();
     act(() => screen.getByText("Add").click());
-    const saved = JSON.parse(localStorageMock.getItem("outdoor_tracker_trips"));
+    const saved = JSON.parse(lsMock.getItem("outdoor_tracker_trips"));
     expect(saved).toHaveLength(1);
     expect(saved[0].location).toBe("Test Lake");
   });

@@ -1,32 +1,43 @@
-// MyTrips.jsx
-// Trip list with type filter and search
+// MyTrips.jsx — Shows only the current user's own trips, with filter + search
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTrip } from "../context/TripContext";
 import TripCard from "../components/TripCard";
 
 const FILTERS = [
-  { value: "all", label: "All" },
-  { value: "fishing", label: "🎣 Fishing" },
-  { value: "hunting", label: "🦌 Hunting" },
-  { value: "hiking",  label: "🥾 Hiking" },
-  { value: "camping", label: "⛺ Camping" },
-  { value: "other",   label: "🌲 Other" },
+  { value: "all",      label: "All" },
+  { value: "fishing",  label: "🎣 Fishing" },
+  { value: "hunting",  label: "🦌 Hunting" },
+  { value: "hiking",   label: "🥾 Hiking" },
+  { value: "camping",  label: "⛺ Camping" },
+  { value: "other",    label: "🌲 Other" },
+];
+
+const VISIBILITY = [
+  { value: "all",      label: "All" },
+  { value: "personal", label: "🔒 Personal" },
+  { value: "public",   label: "🌐 Public" },
 ];
 
 export default function MyTrips() {
-  const { trips } = useTrip();
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  // myTrips = only trips owned by the logged-in user
+  const { myTrips } = useTrip();
+  const [typeFilter,       setTypeFilter]       = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [search,           setSearch]           = useState("");
 
-  const filtered = trips.filter((t) => {
-    const matchType = filter === "all" || t.tripType === filter;
+  const filtered = myTrips.filter((t) => {
+    const matchType = typeFilter === "all" || t.tripType === typeFilter;
+    const matchVis  =
+      visibilityFilter === "all" ||
+      (visibilityFilter === "public"   &&  t.isPublic) ||
+      (visibilityFilter === "personal" && !t.isPublic);
     const matchSearch =
       !search ||
       t.location?.toLowerCase().includes(search.toLowerCase()) ||
       t.species?.toLowerCase().includes(search.toLowerCase()) ||
       t.notes?.toLowerCase().includes(search.toLowerCase());
-    return matchType && matchSearch;
+    return matchType && matchVis && matchSearch;
   });
 
   return (
@@ -35,7 +46,7 @@ export default function MyTrips() {
         <div>
           <h2>My Trips</h2>
           <p className="trips-subtitle">
-            {trips.length} trip{trips.length !== 1 ? "s" : ""} in your journal
+            {myTrips.length} trip{myTrips.length !== 1 ? "s" : ""} in your journal
           </p>
         </div>
         <Link to="/log" className="btn-accent">+ Log Trip</Link>
@@ -43,16 +54,31 @@ export default function MyTrips() {
 
       {/* Filters + Search */}
       <div className="trips-toolbar">
-        <div className="filter-pills">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              className={`filter-pill ${filter === f.value ? "active" : ""}`}
-              onClick={() => setFilter(f.value)}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="filter-rows">
+          {/* Type filter */}
+          <div className="filter-pills">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                className={`filter-pill ${typeFilter === f.value ? "active" : ""}`}
+                onClick={() => setTypeFilter(f.value)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {/* Visibility filter */}
+          <div className="filter-pills">
+            {VISIBILITY.map((v) => (
+              <button
+                key={v.value}
+                className={`filter-pill ${visibilityFilter === v.value ? "active" : ""}`}
+                onClick={() => setVisibilityFilter(v.value)}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
         <input
           className="search-input"
@@ -63,7 +89,7 @@ export default function MyTrips() {
         />
       </div>
 
-      {trips.length === 0 ? (
+      {myTrips.length === 0 ? (
         <div className="empty-state">
           <p className="empty-icon">🌲</p>
           <p>Your journal is empty.</p>
